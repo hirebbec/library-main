@@ -1,0 +1,84 @@
+services:
+  library-main:
+    container_name: library-main-${ENVIRONMENT}
+    restart: always
+    build:
+      context: ./src
+    working_dir: /usr/library-main/src
+    command: sh -c "
+      alembic upgrade head &&
+      python main.py
+      "
+    env_file: ./src/.env.${ENVIRONMENT}
+    networks:
+      - library-network
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    extra_hosts:
+      - ${BACKEND_EXTRA_HOST}
+      - ${KEYCLOAK_EXTRA_HOST}
+    depends_on:
+      - library-s3
+    healthcheck:
+      test: curl -f http://localhost:${SERVER_PORT}/api/healthcheck
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-s3:
+    image: bitnami/minio:2024.12.18
+    container_name: library-s3-${ENVIRONMENT}
+    restart: always
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKET}
+    networks:
+      - library-network
+    expose:
+      - ${MINIO_PORT}
+      - ${MINIO_WEB_PORT}
+    ports:
+      - ${MINIO_PORT}:${MINIO_PORT}
+      - ${MINIO_WEB_PORT}:${MINIO_WEB_PORT}
+    command: minio server --address :${MINIO_PORT} --console-address :${MINIO_WEB_PORT} /bitnami/minio/data
+    volumes:
+      - library-s3-data:/bitnami/minio/data
+    healthcheck:
+      test: curl -f http://library-s3:${MINIO_PORT}/minio/health/live
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-rabbitmq:
+    image: rabbitmq:4.1.6-alpine
+    container_name: library-rabbitmq-${ENVIRONMENT}
+    restart: always
+    environment:
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+    networks:
+      - library-network
+    expose:
+      - ${RABBITMQ_PORT}
+      - ${MINIO_WEB_PORT}
+    ports:
+      - ${MINIO_PORT}:${MINIO_PORT}
+      - ${MINIO_WEB_PORT}:${MINIO_WEB_PORT}
+    command: minio server --address :${MINIO_PORT} --console-address :${MINIO_WEB_PORT} /bitnami/minio/data
+    volumes:
+      - library-s3-data:/bitnami/minio/data
+    healthcheck:
+      test: curl -f http://library-s3:${MINIO_PORT}/minio/health/live
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  library-s3-data:
+
+networks:
+  library-network:
+    name: library-network-${ENVIRONMENT}
+    external: false

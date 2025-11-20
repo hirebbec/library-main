@@ -1,0 +1,35 @@
+[project]
+name = "src"
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.13,<4.0"
+dependencies = [
+    "fastapi[all] (>=0.121.3,<0.122.0)",
+    "loguru (>=0.7.3,<0.8.0)",
+    "aioboto3 (>=15.5.0,<16.0.0)",
+    "faststream[rabbit] (>=0.6.3,<0.7.0)",
+    "boto3-stubs[essential] (>=1.41.0,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "mypy (>=1.18.2,<2.0.0)",
+    "ruff (>=0.14.5,<0.15.0)"
+]
+
+[tool.mypy]
+ignore_missing_imports = false
+
+# Настройки для конкретных модулей
+[[tool.mypy.overrides]]
+module = "aioboto3.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "aiobotocore.*"
+ignore_missing_imports = true
