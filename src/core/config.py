@@ -36,8 +36,8 @@ class Settings(BaseSettings):
 
     RABBITMQ_HOST: str = "library-rabbitmq"
     RABBITMQ_PORT: int = 5672
-    RABBITMQ_USER: str = "library-rabbitmq"
-    RABBITMQ_PASSWORD: str = "library-rabbitmq"
+    RABBITMQ_DEFAULT_USER: str = "library-rabbitmq"
+    RABBITMQ_DEFAULT_PASS: str = "library-rabbitmq"
 
     @functools.cached_property
     def cors_allow_origins(self) -> list[str]:
@@ -53,7 +53,7 @@ class Settings(BaseSettings):
         rabbitmq_host = (
             "localhost" if self.ENVIRONMENT == "local" else self.RABBITMQ_HOST
         )
-        return f"amqp://{self.RABBITMQ_USER}:{self.RABBITMQ_PASSWORD}@{rabbitmq_host}:{self.RABBITMQ_PORT}/"
+        return f"amqp://{self.RABBITMQ_DEFAULT_USER}:{self.RABBITMQ_DEFAULT_PASS}@{rabbitmq_host}:{self.RABBITMQ_PORT}/"
 
     model_config = SettingsConfigDict(
         env_file=env_file if env_file else None,

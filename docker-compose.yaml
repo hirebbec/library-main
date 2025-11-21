@@ -3,20 +3,14 @@ services:
     container_name: library-main-${ENVIRONMENT}
     restart: always
     build:
-      context: ./src
-    working_dir: /usr/library-main/src
-    command: sh -c "
-      alembic upgrade head &&
-      python main.py
-      "
+      context: .
+    working_dir: /usr/library-main
+    command: python src/main.py
     env_file: ./src/.env.${ENVIRONMENT}
     networks:
       - library-network
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
-    extra_hosts:
-      - ${BACKEND_EXTRA_HOST}
-      - ${KEYCLOAK_EXTRA_HOST}
     depends_on:
       - library-s3
     healthcheck:
@@ -26,7 +20,7 @@ services:
       retries: 3
 
   library-s3:
-    image: bitnami/minio:2024.12.18
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
     container_name: library-s3-${ENVIRONMENT}
     restart: always
     environment:
@@ -56,27 +50,29 @@ services:
     restart: always
     environment:
       - RABBITMQ_PORT=${RABBITMQ_PORT}
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - RABBITMQ_WEB_PORT=${RABBITMQ_WEB_PORT}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
     networks:
       - library-network
     expose:
       - ${RABBITMQ_PORT}
-      - ${MINIO_WEB_PORT}
+      - ${RABBITMQ_WEB_PORT}
     ports:
-      - ${MINIO_PORT}:${MINIO_PORT}
-      - ${MINIO_WEB_PORT}:${MINIO_WEB_PORT}
-    command: minio server --address :${MINIO_PORT} --console-address :${MINIO_WEB_PORT} /bitnami/minio/data
+      - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
+      - ${RABBITMQ_WEB_PORT}:${RABBITMQ_WEB_PORT}
+    command: sh -c "rabbitmq-plugins enable rabbitmq_management && rabbitmq-server"
     volumes:
-      - library-s3-data:/bitnami/minio/data
+      - library-rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: curl -f http://library-s3:${MINIO_PORT}/minio/health/live
-      interval: 60s
-      timeout: 3s
-      retries: 3
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
 volumes:
   library-s3-data:
+  library-rabbitmq-data:
 
 networks:
   library-network:
