@@ -5,7 +5,10 @@ services:
     build:
       context: .
     working_dir: /usr/library-main
-    command: python src/main.py
+    command: sh -c "
+      alembic upgrade head &&
+      python main.py
+      "
     env_file: ./src/.env.${ENVIRONMENT}
     networks:
       - library-network
@@ -17,6 +20,29 @@ services:
       - library-elasticsearch
     healthcheck:
       test: curl -f http://localhost:${SERVER_PORT}/api/healthcheck
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-db:
+    image: postgres:16-alpine
+    container_name: library-db-${ENVIRONMENT}
+    restart: always
+    command: -p ${POSTGRES_PORT}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - library-network
+    expose:
+      - ${POSTGRES_PORT}
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    volumes:
+      - library-db-data:/var/lib/postgresql/data/
+    healthcheck:
+      test: pg_isready -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB}
       interval: 60s
       timeout: 3s
       retries: 3
@@ -164,6 +190,7 @@ services:
       - library-network
 
 volumes:
+  library-db-data:
   library-s3-data:
   library-rabbitmq-data:
   library-elasticsearch-data:

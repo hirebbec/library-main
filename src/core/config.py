@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     USE_TIMER_MIDDLEWARE: bool = False
     USE_KEYCLOAK_MIDDLEWARE: bool = False
 
+    POSTGRES_HOST: str = "library-db"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "library-map-db"
+    POSTGRES_PASSWORD: str = "library-map-db"
+    POSTGRES_DB: str = "library-map-db"
+
     MINIO_HOST: str = "library-s3"
     MINIO_PORT: int = 9000
     MINIO_WEB_PORT: int = 9001
@@ -42,6 +48,16 @@ class Settings(BaseSettings):
     @functools.cached_property
     def cors_allow_origins(self) -> list[str]:
         return self.CORS_ALLOW_ORIGIN_LIST.split("&")
+
+    @functools.cached_property
+    def postgres_dsn(self) -> str:
+        postgres_host = (
+            "localhost" if self.ENVIRONMENT == "local" else self.POSTGRES_HOST
+        )
+        return (
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@"
+            f"{postgres_host}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        )
 
     @functools.cached_property
     def s3_dsn(self) -> str:
