@@ -18,13 +18,16 @@ class FileRepository(BaseDatabaseRepository):
         query = select(File)
 
         result = await self._session.execute(query)
-        return [GetFileSchema.model_validate(file) for file in result.scalars().all()]
+        return [
+            GetFileSchema.model_validate(obj=file) for file in result.scalars().all()
+        ]
 
     async def get_by_id(self, id: int) -> GetFileSchema | None:
         query = select(File).where(File.id == id)
 
         result = await self._session.execute(query)
-        return result.scalars().first()
+        raw_file = result.scalars().first()
+        return GetFileSchema.model_validate(obj=raw_file) if raw_file else None
 
     async def delete_by_id(self, id: int) -> None:
         query = delete(File).where(File.id == id)

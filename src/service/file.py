@@ -2,7 +2,7 @@ from typing import Sequence
 
 from fastapi import Depends, UploadFile
 
-from core.exceptions import file_not_found_exception
+from core.exceptions import file_not_found_exception, invalid_file_exception
 from db.repository.file import FileRepository
 from s3.storage import S3Storage
 from schemas.file import CreateFileSchema, GetFileSchema
@@ -19,6 +19,9 @@ class FileService(BaseService):
         self._s3_storage = s3_storage
 
     async def upload_file(self, file: UploadFile):
+        if not file.filename or not file.content_type:
+            raise invalid_file_exception
+
         await self._file_repository.create(
             file=CreateFileSchema(filename=file.filename, mime_type=file.content_type)
         )
