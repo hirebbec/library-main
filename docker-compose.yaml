@@ -18,6 +18,7 @@ services:
       - library-s3
       - library-rabbitmq
       - library-elasticsearch
+      - library-db
     healthcheck:
       test: curl -f http://localhost:${SERVER_PORT}/api/healthcheck
       interval: 60s

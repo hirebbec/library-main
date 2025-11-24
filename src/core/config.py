@@ -26,9 +26,9 @@ class Settings(BaseSettings):
 
     POSTGRES_HOST: str = "library-db"
     POSTGRES_PORT: int = 5432
-    POSTGRES_USER: str = "library-map-db"
-    POSTGRES_PASSWORD: str = "library-map-db"
-    POSTGRES_DB: str = "library-map-db"
+    POSTGRES_USER: str = "library-db"
+    POSTGRES_PASSWORD: str = "library-db"
+    POSTGRES_DB: str = "library-db"
 
     MINIO_HOST: str = "library-s3"
     MINIO_PORT: int = 9000
