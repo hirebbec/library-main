@@ -215,6 +215,7 @@ services:
 
 volumes:
   library-db-data:
+  library-redis-data:
   library-s3-data:
   library-rabbitmq-data:
   library-elasticsearch-data:
