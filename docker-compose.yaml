@@ -19,6 +19,7 @@ services:
       - library-rabbitmq
       - library-elasticsearch
       - library-db
+      - library-redis
     healthcheck:
       test: curl -f http://localhost:${SERVER_PORT}/api/healthcheck
       interval: 60s
@@ -44,6 +45,28 @@ services:
       - library-db-data:/var/lib/postgresql/data/
     healthcheck:
       test: pg_isready -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-redis:
+    image: bitnami/redis:7.4.2
+    container_name: library-redis-${ENVIRONMENT}
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PORT_NUMBER=${REDIS_PORT}
+      - REDIS_DATABASE=${REDIS_DB}
+    networks:
+      - library-network
+    expose:
+      - ${REDIS_PORT}
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - library-redis-data:/bitnami/redis/data
+    healthcheck:
+      test: redis-cli -a ${REDIS_PASSWORD} -p ${REDIS_PORT} ping
       interval: 60s
       timeout: 3s
       retries: 3
@@ -74,7 +97,7 @@ services:
       retries: 3
 
   library-rabbitmq:
-    image: rabbitmq:4.1.6-alpine
+    image: rabbitmq:4.1.6-management-alpine
     container_name: library-rabbitmq-${ENVIRONMENT}
     restart: always
     environment:

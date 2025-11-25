@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     SERVER_PORT: int = 8888
     SERVER_WORKERS_COUNT: int = 5
 
+    SEARCH_QUEUE: str = "search"
+
     ENVIRONMENT: str = "local"
     TIME_ZONE: timezone = timezone(offset=timedelta(hours=+3))
     CORS_ALLOW_ORIGIN_LIST: str = "*"
