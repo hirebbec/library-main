@@ -10,6 +10,7 @@ from core.exceptions import (
     invalid_file_exception,
     file_upload_failed_exception,
     file_download_failed_exception,
+    file_delete_failed_exception,
 )
 from db.repository.file import FileRepository
 from s3.storage import S3Storage
@@ -48,6 +49,12 @@ class FileService(BaseService):
         return file
 
     async def delete_file_by_id(self, id: int) -> None:
+        if not await self._s3_storage.is_file_exists(key=str(id)):
+            raise file_not_found_exception
+
+        if not await self._s3_storage.delete_file_by_key(key=str(id)):
+            raise file_delete_failed_exception
+
         await self._file_repository.delete_by_id(id=id)
 
     async def download_file_by_id(self, id: int) -> StreamingResponse:

@@ -41,7 +41,7 @@ class S3Storage:
             logger.error(f"Error get file: {e}")
             return None
 
-    async def delete_file(self, key: str) -> bool:
+    async def delete_file_by_key(self, key: str) -> bool:
         try:
             await self._s3_client.delete_object(Bucket=self._s3_bucket_name, Key=key)
             return True

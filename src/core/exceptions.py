@@ -20,6 +20,11 @@ file_download_failed_exception = HTTPException(
     detail="Failed to download file.",
 )
 
+file_delete_failed_exception = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Failed to delete file.",
+)
+
 
 class ModelEncodeValidationError(Exception):
     def __init__(self, message) -> None:
