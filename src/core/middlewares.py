@@ -9,7 +9,6 @@ from core.config import settings
 
 middleware = []
 
-
 if settings().USE_CORS_MIDDLEWARE:
     middleware.append(
         Middleware(

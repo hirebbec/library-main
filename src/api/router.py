@@ -2,10 +2,11 @@ from fastapi import APIRouter
 
 from api.healthcheck import router as healthcheck_router
 from core.config import settings
+from api.v1.file import router as file_router
 
 v1_router = APIRouter(prefix="/v1")
 
-# v1_router.include_router(dashboard_router)
+v1_router.include_router(file_router)
 
 
 project_router = APIRouter(prefix=f"/{settings().PROJECT_NAME}")

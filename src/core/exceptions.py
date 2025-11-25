@@ -10,6 +10,16 @@ invalid_file_exception = HTTPException(
     detail="Invalide file: filename or MIME is missng",
 )
 
+file_upload_failed_exception = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Failed to upload file.",
+)
+
+file_download_failed_exception = HTTPException(
+    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+    detail="Failed to download file.",
+)
+
 
 class ModelEncodeValidationError(Exception):
     def __init__(self, message) -> None:

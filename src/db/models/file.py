@@ -8,4 +8,4 @@ class File(BaseModel):
     __tablename__ = "files"
 
     filename: Mapped[str] = mapped_column(String, nullable=False)
-    author: Mapped[str] = mapped_column(String, nullable=True)
+    mime_type: Mapped[str] = mapped_column(String, nullable=False)
