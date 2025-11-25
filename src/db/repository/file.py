@@ -5,14 +5,15 @@ from sqlalchemy import insert, select, delete
 from db.models import File
 from db.repository.base import BaseDatabaseRepository
 from schemas.file import CreateFileSchema, GetFileSchema
+from schemas.mixins import IDSchema
 
 
 class FileRepository(BaseDatabaseRepository):
-    async def create(self, file: CreateFileSchema) -> None:
-        query = insert(File).values(**file.model_dump())
+    async def create(self, file: CreateFileSchema) -> IDSchema:
+        query = insert(File).values(**file.model_dump()).returning(File.id)
 
-        await self._session.execute(query)
-        await self._session.flush()
+        result = await self._session.execute(query)
+        return IDSchema(id=result.scalar_one())
 
     async def get_files(self) -> Sequence[GetFileSchema]:
         query = select(File)
