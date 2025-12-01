@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     SERVER_PORT: int = 8888
     SERVER_WORKERS_COUNT: int = 5
 
-    SEARCH_QUEUE: str = "search"
+    RABBITMQ_SEARCH_QUEUE: str = "search"
 
     ENVIRONMENT: str = "local"
     TIME_ZONE: timezone = timezone(offset=timedelta(hours=+3))
@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     RABBITMQ_DEFAULT_USER: str = "library-rabbitmq"
     RABBITMQ_DEFAULT_PASS: str = "library-rabbitmq"
 
+    REDIS_HOST: str = "library-redis"
+    REDIS_PORT: int = 16379
+    REDIS_PASSWORD: str = "library-redis"
+    REDIS_DB: int = 0
+
     @functools.cached_property
     def cors_allow_origins(self) -> list[str]:
         return self.CORS_ALLOW_ORIGIN_LIST.split("&")
@@ -72,6 +77,11 @@ class Settings(BaseSettings):
             "localhost" if self.ENVIRONMENT == "local" else self.RABBITMQ_HOST
         )
         return f"amqp://{self.RABBITMQ_DEFAULT_USER}:{self.RABBITMQ_DEFAULT_PASS}@{rabbitmq_host}:{self.RABBITMQ_PORT}/"
+
+    @functools.cached_property
+    def redis_dsn(self) -> str:
+        redis_host = "localhost" if self.ENVIRONMENT == "local" else self.REDIS_HOST
+        return f"redis://:{self.REDIS_PASSWORD}@{redis_host}:{self.REDIS_PORT}/{self.REDIS_DB}"
 
     model_config = SettingsConfigDict(
         env_file=env_file if env_file else None,

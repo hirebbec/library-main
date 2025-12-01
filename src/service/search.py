@@ -20,7 +20,7 @@ class SearchService(BaseService):
 
         await self._rabbit_publisher.publish(
             message=message.model_dump(),
-            queue=settings().SEARCH_QUEUE,
+            queue=settings().RABBITMQ_SEARCH_QUEUE,
             correlation_id=message.uuid,
         )
 
