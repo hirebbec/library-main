@@ -10,7 +10,9 @@ dependencies = [
     "faststream[rabbit] (>=0.6.3,<0.7.0)",
     "boto3-stubs[essential] (>=1.41.0,<2.0.0)",
     "alembic (>=1.17.2,<2.0.0)",
-    "asyncpg (>=0.30.0,<0.31.0)"
+    "asyncpg (>=0.30.0,<0.31.0)",
+    "elasticsearch[async] (>=9.2.0,<10.0.0)",
+    "pymupdf (>=1.26.6,<2.0.0)"
 ]
 
 

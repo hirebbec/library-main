@@ -173,6 +173,7 @@ services:
       ELASTICSEARCH_HOSTS: http://library-elasticsearch-${ENVIRONMENT}:${ELASTIC_PORT}
       ELASTICSEARCH_USERNAME: kibana_system
       ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+      xpack.encryptedSavedObjects.encryptionKey: ${KIBANA_SECRET_KEY}
     ports:
       - ${KIBANA_PORT}:${KIBANA_PORT}
     expose:

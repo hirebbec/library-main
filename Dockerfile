@@ -1,19 +1,22 @@
-FROM python:3.13-alpine
+FROM python:3.13-slim
 
 WORKDIR /usr/library-main
 
 ENV PYTHONUNBUFFERED=1 \
     TZ="Europe/Moscow"
 
-RUN apk add --no-cache \
+RUN apt update && apt install -y --no-install-recommends \
+    ca-certificates \
     curl \
-    postgresql-dev \
+    libpq-dev \
     graphviz \
     gcc \
-    musl-dev \
-    python3-dev \
+    g++ \
+    build-essential \
     libffi-dev \
-    openssl-dev
+    openssl \
+    git \
+    && apt clean && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip --no-cache-dir && \
     pip install poetry==2.2.1 --no-cache-dir

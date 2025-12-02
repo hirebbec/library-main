@@ -2,6 +2,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from api.router import api_router
+from core.lifespan import lifespan
 from mq.router import rabbit_router
 from core.config import settings
 from core.middlewares import middleware
@@ -12,6 +13,7 @@ app = FastAPI(
     docs_url="/api/swagger",
     middleware=middleware,
     swagger_ui_parameters={"operationsSorter": "method"},
+    lifespan=lifespan,
 )
 
 app.include_router(api_router)
