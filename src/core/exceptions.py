@@ -25,6 +25,11 @@ file_delete_failed_exception = HTTPException(
     detail="Failed to delete file.",
 )
 
+result_not_ready_exception = HTTPException(
+    status_code=status.HTTP_404_NOT_FOUND,
+    detail="Result is not ready.",
+)
+
 
 class ModelEncodeValidationError(Exception):
     def __init__(self, message) -> None:
