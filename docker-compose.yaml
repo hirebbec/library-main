@@ -1,0 +1,227 @@
+services:
+  library-main:
+    container_name: library-main-${ENVIRONMENT}
+    restart: always
+    build:
+      context: .
+    working_dir: /usr/library-main/src
+    command: sh -c "
+      alembic upgrade head &&
+      python main.py
+      "
+    env_file: ./src/.env.${ENVIRONMENT}
+    networks:
+      - library-network
+    ports:
+      - ${SERVER_PORT}:${SERVER_PORT}
+    depends_on:
+      - library-s3
+      - library-rabbitmq
+      - library-elasticsearch
+      - library-db
+      - library-redis
+    healthcheck:
+      test: curl -f http://localhost:${SERVER_PORT}/api/healthcheck
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-db:
+    image: postgres:16-alpine
+    container_name: library-db-${ENVIRONMENT}
+    restart: always
+    command: -p ${POSTGRES_PORT}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    networks:
+      - library-network
+    expose:
+      - ${POSTGRES_PORT}
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    volumes:
+      - library-db-data:/var/lib/postgresql/data/
+    healthcheck:
+      test: pg_isready -p ${POSTGRES_PORT} -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-redis:
+    image: bitnami/redis:latest
+    container_name: library-redis-${ENVIRONMENT}
+    restart: unless-stopped
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PORT_NUMBER=${REDIS_PORT}
+      - REDIS_DATABASE=${REDIS_DB}
+    networks:
+      - library-network
+    expose:
+      - ${REDIS_PORT}
+    ports:
+      - ${REDIS_PORT}:${REDIS_PORT}
+    volumes:
+      - library-redis-data:/bitnami/redis/data
+    healthcheck:
+      test: redis-cli -a ${REDIS_PASSWORD} -p ${REDIS_PORT} ping
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-s3:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z-cpuv1
+    container_name: library-s3-${ENVIRONMENT}
+    restart: always
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      - MINIO_DEFAULT_BUCKETS=${MINIO_DEFAULT_BUCKET}
+    networks:
+      - library-network
+    expose:
+      - ${MINIO_PORT}
+      - ${MINIO_WEB_PORT}
+    ports:
+      - ${MINIO_PORT}:${MINIO_PORT}
+      - ${MINIO_WEB_PORT}:${MINIO_WEB_PORT}
+    command: minio server --address :${MINIO_PORT} --console-address :${MINIO_WEB_PORT} /bitnami/minio/data
+    volumes:
+      - library-s3-data:/bitnami/minio/data
+    healthcheck:
+      test: curl -f http://library-s3-${ENVIRONMENT}:${MINIO_PORT}
+      interval: 60s
+      timeout: 3s
+      retries: 3
+
+  library-rabbitmq:
+    image: rabbitmq:4.1.6-management-alpine
+    container_name: library-rabbitmq-${ENVIRONMENT}
+    restart: always
+    environment:
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_WEB_PORT=${RABBITMQ_WEB_PORT}
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    networks:
+      - library-network
+    expose:
+      - ${RABBITMQ_PORT}
+      - ${RABBITMQ_WEB_PORT}
+    ports:
+      - ${RABBITMQ_PORT}:${RABBITMQ_PORT}
+      - ${RABBITMQ_WEB_PORT}:${RABBITMQ_WEB_PORT}
+    command: sh -c "rabbitmq-plugins enable rabbitmq_management && rabbitmq-server"
+    volumes:
+      - library-rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  library-elasticsearch:
+    image: elasticsearch:9.2.1
+    container_name: library-elasticsearch-${ENVIRONMENT}
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+      - xpack.security.transport.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - http.port=${ELASTIC_PORT}
+      - http.publish_port=${ELASTIC_PORT}
+      - network.host=0.0.0.0
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - ${ELASTIC_PORT}:${ELASTIC_PORT}
+    expose:
+      - ${ELASTIC_PORT}
+    volumes:
+      - library-elasticsearch-data:/usr/share/elasticsearch/data
+      - ./es-init:/usr/share/elasticsearch/init
+    command: >
+      bash -c "
+        /usr/local/bin/docker-entrypoint.sh elasticsearch & pid=\$!
+        until curl -s -u elastic:${ELASTIC_PASSWORD} http://localhost:${ELASTIC_PORT}/_cluster/health; do
+          sleep 5;
+        done;
+        for f in /usr/share/elasticsearch/init/*.sh; do
+          echo Running \$f;
+          bash \$f;
+        done;
+        wait \$pid
+      "
+    networks:
+      - library-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -u elastic:${ELASTIC_PASSWORD} -s http://localhost:${ELASTIC_PORT}/_cluster/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  library-kibana:
+    image: kibana:9.2.1
+    container_name: library-kibana-${ENVIRONMENT}
+    restart: always
+    environment:
+      SERVER_NAME: ${KIBANA_SERVER_NAME}
+      SERVER_HOST: ${KIBANA_HOST}
+      SERVER_PORT: ${KIBANA_PORT}
+      ELASTICSEARCH_HOSTS: http://library-elasticsearch-${ENVIRONMENT}:${ELASTIC_PORT}
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+      xpack.encryptedSavedObjects.encryptionKey: ${KIBANA_SECRET_KEY}
+    ports:
+      - ${KIBANA_PORT}:${KIBANA_PORT}
+    expose:
+      - ${KIBANA_PORT}
+    depends_on:
+      library-elasticsearch:
+        condition: service_healthy
+    networks:
+      - library-network
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -s http://localhost:${KIBANA_PORT}/api/status | grep -q 'green'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  library-es-setup:
+    image: elasticsearch:9.2.1
+    container_name: library-es-setup-${ENVIRONMENT}
+    environment:
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
+    command: >
+      bash -c '
+        echo "Waiting for Elasticsearch...";
+        until curl -s -u elastic:${ELASTIC_PASSWORD} http://library-elasticsearch-${ENVIRONMENT}:${ELASTIC_PORT}/_cluster/health | grep -q "yellow\|green"; do
+          sleep 5;
+        done;
+        echo "Setting kibana_system password...";
+        curl -X POST -u elastic:${ELASTIC_PASSWORD} \
+          -H "Content-Type: application/json" \
+          http://library-elasticsearch-${ENVIRONMENT}:${ELASTIC_PORT}/_security/user/kibana_system/_password \
+          -d "{\"password\":\"${KIBANA_SYSTEM_PASSWORD}\"}" || true;
+        echo "Setup complete!";
+      '
+    depends_on:
+      library-elasticsearch:
+        condition: service_healthy
+    networks:
+      - library-network
+
+volumes:
+  library-db-data:
+  library-redis-data:
+  library-s3-data:
+  library-rabbitmq-data:
+  library-elasticsearch-data:
+
+networks:
+  library-network:
+    name: library-network-${ENVIRONMENT}
+    external: false
